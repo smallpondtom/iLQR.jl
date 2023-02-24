@@ -70,7 +70,11 @@ function solve_ilqr(
     return problem.X, problem.U
 end
 
-function backward_pass(model::Any, problem::iLQRProblem)
+
+function backward_pass(
+        model::Any, 
+        problem::iLQRProblem,
+    )
     X, U = problem.X, problem.U
     x_dim, u_dim = model.x_dim, model.u_dim
     reg_param1, reg_param2 = problem.reg_param1, problem.reg_param2
@@ -90,7 +94,7 @@ function backward_pass(model::Any, problem::iLQRProblem)
 
     # Storing dynamics and costs
     for t in 1:tN-1
-        fx, fu = get_jacobian(model, X[:, t], U[:, t], t)
+        fx, fu = model.get_jacobian(model, X[:, t], U[:, t], t)
         fx_arr[:, :, t] = I + fx * dt
         fu_arr[:, :, t] = fu * dt
 

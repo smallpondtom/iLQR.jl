@@ -4,11 +4,11 @@
 =#
 #################################################################################################
 
-
-
 using ForwardDiff
+using LinearAlgebra
 
 export CartPole
+
 
 # Cart pole dynamics as a Julia class
 struct CartPole
@@ -25,7 +25,8 @@ struct CartPole
     hN::Int64 # number of horizon time-discretization steps
 
     dynamics::Function # dynamic equation of motion
-    
+    get_jacobian::Function # dynamic jacobian
+
     # dynamics constants
     mc::Float64
     mp::Float64
@@ -39,19 +40,22 @@ struct CartPole
 
     conv_tol::Float64 # convergence tolerance
     max_ite::Int64 # maximum iteration threshhold
+
 end
+
+
 
 # Define the model struct with parameters
 function CartPole()
     x_dim = 4
     u_dim = 2
 
-    x_init = [0, 0, pi/6, 0]
+    x_init = [0, 0, pi / 6, 0]
     x_final = [0, 0, pi, 0]
 
     dt = 0.02
     tN = 500
-    hN = 100 
+    hN = 100
 
 
     mc = 1.0
@@ -59,13 +63,14 @@ function CartPole()
     l = 1.0
     g = 9.81
 
-    
+
     F = Diagonal([1e+2 * [1; 1]; 1e+2 * [1; 1]])
-    Q = zeros(4,4) 
-    R = Diagonal(1e-3*[1, 1])
+    Q = zeros(4, 4)
+    R = Diagonal(1e-3 * [1, 1])
 
     conv_tol = 1e-5
     max_ite = 10
+
 
     CartPole(
         x_dim,
@@ -76,7 +81,8 @@ function CartPole()
         tN,
         hN,
         dynamics,
-        mc, 
+        get_jacobian,
+        mc,
         mp,
         l,
         g,
@@ -89,26 +95,12 @@ function CartPole()
 end
 
 
-"""
-    dynamics(model, x, u, t, step)
-
-The dynamic equation of motion.
-
-# Arguments
-- `model`: Abstract model
-- `x`: state at a given time step
-- `u`: control at a given time step
-- `t`: time at a given time step
-- `step`: time step
-
-# Returns
-- `ẋ`: time derivative of nonlinear equation of motion
-"""
 function dynamics(
-    model::CartPole, 
-    x::Vector, 
-    u::Vector, 
-    t::Float64, step::Int64
+    model::CartPole,
+    x::Vector,
+    u::Vector,
+    t::Float64,
+    step::Int64
 )
     mc = model.mc
     mp = model.mp
@@ -120,7 +112,7 @@ function dynamics(
     ṗ = x[2]
     θ = x[3]
     θ̇ = x[4]
-    
+
     ẋ = [
         ṗ
         (u[1] + mp * sin(θ) * (l * θ̇^2 + g * cos(θ))) / (mc + mp * sin(θ)^2)
@@ -128,16 +120,17 @@ function dynamics(
         (-u[1] * cos(θ) - mp * l * θ̇^2 * cos(θ) * sin(θ) - (mc + mp) * g * sin(θ)) / (mc + mp * sin(θ)^2)
     ]
     return ẋ
-end 
+end
+
 
 function get_jacobian(
-    model::CartPole, 
+    model::CartPole,
     x::AbstractArray{Float64,1},
     u::AbstractArray{Float64,1},
-    t::Int64,
-)   
-    fx = ForwardDiff.jacobian(x -> dynamics(model, x, u, 0.0, t), x)
-    fu = ForwardDiff.jacobian(u -> dynamics(model, x, u, 0.0, t), u)
+    Δt::Int64,
+)
+    fx = ForwardDiff.jacobian(x -> dynamics(model, x, u, 0.0, Δt), x)
+    fu = ForwardDiff.jacobian(u -> dynamics(model, x, u, 0.0, Δt), u)
 
     return fx, fu
 end

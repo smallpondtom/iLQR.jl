@@ -81,7 +81,7 @@ end
 
 
 """
-    reset_ddp_problems()
+    reset_ilqr_problems()
 """
 function reset_ilqr_problem(
     model::Any,
@@ -93,7 +93,7 @@ function reset_ilqr_problem(
 
     if sim_new_traj
         X, U = initialize_trajectory(model, tN)
-        
+
         problem.X, problem.U = copy(X), copy(U)
         problem.sim_new_traj = false
     end
